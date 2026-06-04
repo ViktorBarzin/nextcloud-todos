@@ -1,6 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
     nextcloud_user: str = "admin"
     caldav_app_password: str = ""
     webhook_bearer_token: str = ""
-    list_allowlist: list[str] = ["Personal"]
+    list_allowlist: Annotated[list[str], NoDecode] = ["Personal"]
 
     # local classifier
     llama_swap_url: str = "http://llama-swap.llama-cpp.svc.cluster.local:8080"
@@ -34,6 +36,16 @@ class Settings(BaseSettings):
 
     # db
     db_connection_string: str = "sqlite+aiosqlite:///:memory:"
+
+    @field_validator("list_allowlist", mode="before")
+    @classmethod
+    def _split_csv(cls, v: object) -> object:
+        # Accept a comma-separated env string (LIST_ALLOWLIST=Personal,Work) as
+        # well as a real list. NoDecode stops pydantic-settings from trying to
+        # JSON-decode the env value first (which fails on a bare string).
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
 
 
 @lru_cache

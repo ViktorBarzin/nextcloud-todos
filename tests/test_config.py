@@ -11,3 +11,13 @@ def test_defaults(monkeypatch):
     assert s.llama_swap_model == "qwen3-8b"
     assert s.research_soft_cap_usd == 20.0
     assert s.exec_budget_usd == 50.0
+
+
+def test_list_allowlist_parses_csv_env(monkeypatch):
+    monkeypatch.setenv("LIST_ALLOWLIST", "Personal")
+    assert Settings().list_allowlist == ["Personal"]
+
+
+def test_list_allowlist_parses_multiple(monkeypatch):
+    monkeypatch.setenv("LIST_ALLOWLIST", "Personal, Work Todo ,Goals 2026")
+    assert Settings().list_allowlist == ["Personal", "Work Todo", "Goals 2026"]
