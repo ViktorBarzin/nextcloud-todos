@@ -1,8 +1,17 @@
 {
   "id": "nextcloud-todos-api",
+  "name": "Nextcloud Todos",
+  "description": "Nextcloud Personal-list todo cards + approval/announcement tools for the nextcloud-todos service.",
   "kind": "tools",
-  "activation": { "onStartup": true },
+  "activation": {
+    "onStartup": true
+  },
   "contracts": {
     "tools": ["todos_list", "todos_get", "todos_answer_for", "todos_set_chat"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
   }
 }
