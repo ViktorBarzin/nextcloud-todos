@@ -3,8 +3,9 @@ from defusedxml import ElementTree as ET  # add `defusedxml` to deps
 
 
 class CalendarResolver:
-    def __init__(self, *, base_url: str = "", user: str = "", password: str = "",
-                 allowlist_names: list[str]):
+    def __init__(
+        self, *, base_url: str = "", user: str = "", password: str = "", allowlist_names: list[str]
+    ):
         self._base_url = base_url
         self._user = user
         self._password = password
@@ -21,11 +22,11 @@ class CalendarResolver:
     async def refresh(self, client: httpx.AsyncClient) -> None:
         """PROPFIND calendar-home to build {uri: display_name}. Called at startup."""
         url = f"{self._base_url}/remote.php/dav/calendars/{self._user}/"
-        body = (
-            '<d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>'
-        )
+        body = '<d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>'
         resp = await client.request(
-            "PROPFIND", url, content=body,
+            "PROPFIND",
+            url,
+            content=body,
             headers={"Depth": "1", "Content-Type": "application/xml"},
             auth=(self._user, self._password),
         )

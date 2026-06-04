@@ -10,8 +10,9 @@ from nextcloud_todos.triage import TriageVerdict
 TriageFn = Callable[[str, str], Awaitable[TriageVerdict]]
 
 
-async def process_todo(session: AsyncSession, parsed: ParsedTodo, calendar_uri: str,
-                       etag: str, *, triage_fn: TriageFn) -> Todo:
+async def process_todo(
+    session: AsyncSession, parsed: ParsedTodo, calendar_uri: str, etag: str, *, triage_fn: TriageFn
+) -> Todo:
     todo = (await session.execute(select(Todo).where(Todo.uid == parsed.uid))).scalar_one_or_none()
     if todo and todo.etag == etag:
         return todo  # dedup: unchanged delivery
@@ -35,8 +36,13 @@ async def process_todo(session: AsyncSession, parsed: ParsedTodo, calendar_uri: 
         return todo
 
     kind = "plan" if verdict.needs_approval else "answer"
-    session.add(Event(todo_id=todo.id, kind=kind,
-                      payload={"summary": verdict.one_line_summary, "todo_kind": verdict.kind}))
+    session.add(
+        Event(
+            todo_id=todo.id,
+            kind=kind,
+            payload={"summary": verdict.one_line_summary, "todo_kind": verdict.kind},
+        )
+    )
     todo.status = "awaiting_approval" if kind == "plan" else "answering"
     await session.commit()
     return todo

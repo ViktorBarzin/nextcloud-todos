@@ -36,8 +36,9 @@ class TriageVerdict:
         return self.kind in MUTATING_KINDS
 
 
-async def triage(summary: str, description: str, *, client: httpx.AsyncClient,
-                 llama_url: str, model: str) -> TriageVerdict:
+async def triage(
+    summary: str, description: str, *, client: httpx.AsyncClient, llama_url: str, model: str
+) -> TriageVerdict:
     user = f"SUMMARY: {summary}\nDESCRIPTION: {description}".strip()
     resp = await client.post(
         f"{llama_url}/v1/chat/completions",
