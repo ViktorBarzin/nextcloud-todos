@@ -1424,6 +1424,18 @@ files = [
 cli = ["click (>=5.0)"]
 
 [[package]]
+name = "python-multipart"
+version = "0.0.12"
+description = "A streaming multipart parser for Python"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "python_multipart-0.0.12-py3-none-any.whl", hash = "sha256:43dcf96cf65888a9cd3423544dd0d75ac10f7aa0c3c28a175bbcd00c9ce1aebf"},
+    {file = "python_multipart-0.0.12.tar.gz", hash = "sha256:045e1f98d719c1ce085ed7f7e1ef9d8ccc8c02ba02b5566d5f7521410ced58cb"},
+]
+
+[[package]]
 name = "pytz"
 version = "2026.2"
 description = "World timezone definitions, modern and historical"
@@ -2092,4 +2104,4 @@ tzdata = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "90c27ac3b6d935fe316790034f9f3a278cfad0c9bd020d086742e8a7a0cb7dc4"
+content-hash = "c344510631132420a539a0e952f66a2a9a7b4170eeeab48adcd6b6a11da0313e"
