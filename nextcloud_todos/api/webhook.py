@@ -46,12 +46,18 @@ async def hook(
     user_uid = user_obj.get("uid")
     component = obj.get("component") or ""
     calendar_uri = cal.get("uri", "")
+    event_class = str(ev.get("class") or container.get("eventType") or "")
 
     logger.info(
-        "nextcloud hook: user=%s component=%s cal_uri=%s allow=%s",
-        user_uid, component, calendar_uri, sorted(resolver.allowlisted_uris())
+        "nextcloud hook: class=%s user=%s component=%s cal_uri=%s allow=%s",
+        event_class.rsplit("\\", 1)[-1], user_uid, component, calendar_uri,
+        sorted(resolver.allowlisted_uris()),
     )
 
+    # Only act on NEWLY CREATED todos. We register only the Created webhook, but
+    # ignore anything else defensively (updates/moves/deletes never trigger).
+    if "CalendarObjectCreatedEvent" not in event_class:
+        return {"skipped": "not-created"}
     if user_uid != get_settings().nextcloud_user:
         return {"skipped": "wrong-user"}
     if component.lower() != "vtodo":

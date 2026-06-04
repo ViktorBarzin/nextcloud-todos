@@ -9,22 +9,35 @@ from nextcloud_todos.triage import TriageVerdict
 
 TriageFn = Callable[[str, str], Awaitable[TriageVerdict]]
 
+# VTODO STATUS values that mean the task is NOT open — never act on these.
+CLOSED_STATUSES = {"COMPLETED", "CANCELLED"}
+
 
 async def process_todo(
     session: AsyncSession, parsed: ParsedTodo, calendar_uri: str, etag: str, *, triage_fn: TriageFn
-) -> Todo:
-    todo = (await session.execute(select(Todo).where(Todo.uid == parsed.uid))).scalar_one_or_none()
-    if todo and todo.etag == etag:
-        return todo  # dedup: unchanged delivery
+) -> Todo | None:
+    # Act on a todo ONCE, at first sight only. Any later delivery for the same
+    # UID (an edit, a status change, the agent's own note-append) is ignored —
+    # the agent is purely reactive to newly-created items, never re-triggers.
+    existing = (
+        await session.execute(select(Todo).where(Todo.uid == parsed.uid))
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
 
-    if todo is None:
-        todo = Todo(uid=parsed.uid)
-        session.add(todo)
-    todo.calendar_uri = calendar_uri
-    todo.etag = etag
-    todo.summary = parsed.summary
-    todo.description = parsed.description
-    todo.due = parsed.due
+    # Only act on OPEN tasks — skip completed/cancelled (don't even record them).
+    if parsed.status.upper() in CLOSED_STATUSES:
+        return None
+
+    todo = Todo(
+        uid=parsed.uid,
+        calendar_uri=calendar_uri,
+        etag=etag,
+        summary=parsed.summary,
+        description=parsed.description,
+        due=parsed.due,
+    )
+    session.add(todo)
     await session.flush()  # assign todo.id
 
     verdict = await triage_fn(parsed.summary, parsed.description)

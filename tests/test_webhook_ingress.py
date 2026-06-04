@@ -57,3 +57,13 @@ async def test_non_allowlisted_list_dropped(client):
     r = await c.post("/nextcloud/hook", json=body, headers={"Authorization": "Bearer tok"})
     assert r.status_code == 200 and r.json()["skipped"] == "not-allowlisted"
     assert (await session.execute(Todo.__table__.select())).fetchall() == []
+
+
+async def test_updated_event_skipped(client):
+    # Only newly-created todos trigger; an Updated event must be ignored.
+    c, session = client
+    body = json.loads((FX / "webhook_created.json").read_text())
+    body["event"]["class"] = "OCP\\Calendar\\Events\\CalendarObjectUpdatedEvent"
+    r = await c.post("/nextcloud/hook", json=body, headers={"Authorization": "Bearer tok"})
+    assert r.status_code == 200 and r.json()["skipped"] == "not-created"
+    assert (await session.execute(Todo.__table__.select())).fetchall() == []

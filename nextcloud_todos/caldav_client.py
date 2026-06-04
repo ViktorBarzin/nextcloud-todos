@@ -8,7 +8,7 @@ from icalendar import Calendar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from nextcloud_todos.models import SyncState
+from nextcloud_todos.models import SyncState, Todo
 from nextcloud_todos.orchestrator import process_todo
 from nextcloud_todos.parsing import parse_vtodo
 from nextcloud_todos.triage import TriageVerdict
@@ -91,14 +91,35 @@ async def _sync_calendar(
     if state is None:
         state = SyncState(calendar_uri=calendar_uri, display_name=display_name)
         session.add(state)
+    # First sync for this calendar (no token yet) = a full pull of everything
+    # that already exists. Baseline those instead of processing them, so the
+    # agent never treats pre-existing todos as "newly created". Only deltas
+    # picked up on later syncs (genuine new creations) get processed.
+    first_sync = state.sync_token is None
     new_token, changes = await syncer.changed_todos(calendar_uri, state.sync_token)
     state.sync_token = new_token
     state.display_name = display_name
     for _todo_uri, ics in changes:
         parsed = parse_vtodo(ics)
-        if parsed is not None:
+        if parsed is None:
+            continue
+        if first_sync:
+            await _baseline_todo(session, parsed, calendar_uri)
+        else:
             await process_todo(session, parsed, calendar_uri, "", triage_fn=triage_fn)
     await session.commit()
+
+
+async def _baseline_todo(session: AsyncSession, parsed, calendar_uri: str) -> None:
+    """Record a pre-existing todo without acting on it, so process_todo's
+    first-sight guard skips it forever."""
+    existing = (
+        await session.execute(select(Todo).where(Todo.uid == parsed.uid))
+    ).scalar_one_or_none()
+    if existing is None:
+        session.add(
+            Todo(uid=parsed.uid, calendar_uri=calendar_uri, status="baseline", summary=parsed.summary)
+        )
 
 
 async def sweep(
