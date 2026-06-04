@@ -1,0 +1,8 @@
+{
+  "id": "nextcloud-todos-api",
+  "kind": "tools",
+  "activation": { "onStartup": true },
+  "contracts": {
+    "tools": ["todos_list", "todos_get", "todos_answer_for", "todos_set_chat"]
+  }
+}
