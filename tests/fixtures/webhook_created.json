@@ -5,7 +5,8 @@
     "objectData": {
       "uri": "todo-1.ics", "etag": "etag-1", "component": "vtodo",
       "calendardata": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VTODO\nUID:abc-123\nSUMMARY:Add a Grafana panel\nEND:VTODO\nEND:VCALENDAR"
-    },
-    "user": {"uid": "admin"}
-  }
+    }
+  },
+  "user": {"uid": "admin"},
+  "time": 1700000000
 }
