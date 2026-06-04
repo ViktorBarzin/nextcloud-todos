@@ -42,9 +42,7 @@ async def approve(
 
 
 @router.get("/reject/{event_id}", response_class=HTMLResponse)
-async def reject(
-    event_id: int, sig: str, session: AsyncSession = Depends(get_session)
-) -> str:
+async def reject(event_id: int, sig: str, session: AsyncSession = Depends(get_session)) -> str:
     await _record(session, event_id, "reject", sig)
     return "<h3>Rejected ❌</h3>"
 

@@ -8,9 +8,7 @@ from nextcloud_todos.db import metadata
 
 async def test_healthz():
     app = create_app()
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://t"
-    ) as c:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         r = await c.get("/healthz")
     assert r.status_code == 200
 
@@ -26,9 +24,7 @@ async def test_api_requires_bearer(monkeypatch, tmp_path):
     await engine.dispose()
 
     app = create_app()
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://t"
-    ) as c:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         unauth = await c.get("/api/events?since=0")
         authed = await c.get("/api/events?since=0", headers={"Authorization": "Bearer tok"})
     assert unauth.status_code == 401  # middleware blocks missing token

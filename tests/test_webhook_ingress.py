@@ -30,9 +30,7 @@ async def client(session, monkeypatch):
         return TriageVerdict(True, "code", "normal", True, "s")
 
     app.state.triage_fn = fake_triage
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://t"
-    ) as c:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         yield c, session
     get_settings.cache_clear()
 

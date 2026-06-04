@@ -26,9 +26,7 @@ async def client(session, monkeypatch):
     await session.flush()
     session.add(Event(todo_id=1, kind="plan", payload={}))
     await session.commit()
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://t"
-    ) as c:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         yield c
     get_settings.cache_clear()
 

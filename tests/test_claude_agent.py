@@ -12,9 +12,7 @@ async def test_submit_polls_until_complete():
         state["calls"] += 1
         if state["calls"] < 2:
             return httpx.Response(200, json={"status": "running"})
-        return httpx.Response(
-            200, json={"status": "completed", "result": "done", "cost_usd": 0.42}
-        )
+        return httpx.Response(200, json={"status": "completed", "result": "done", "cost_usd": 0.42})
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:

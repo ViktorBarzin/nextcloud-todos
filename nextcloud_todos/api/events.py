@@ -30,9 +30,7 @@ async def list_events(
         .scalars()
         .all()
     )
-    return [
-        {"id": e.id, "todo_id": e.todo_id, "kind": e.kind, "payload": e.payload} for e in rows
-    ]
+    return [{"id": e.id, "todo_id": e.todo_id, "kind": e.kind, "payload": e.payload} for e in rows]
 
 
 @router.post("/events/{event_id}/consume")
