@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "nextcloud-todos"
+version = "0.1.0"
+description = "Agent that watches the Nextcloud Personal task list and acts on todos"
+authors = ["Viktor Barzin <viktorbarzin@meta.com>"]
+packages = [{ include = "nextcloud_todos" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115"
+uvicorn = { extras = ["standard"], version = "^0.32" }
+sqlalchemy = { extras = ["asyncio"], version = "^2.0" }
+asyncpg = "^0.30"
+aiosqlite = "^0.20"
+alembic = "^1.14"
+icalendar = "^6.1"
+caldav = "^1.4"
+httpx = "^0.28"
+pydantic-settings = "^2.6"
+prometheus-fastapi-instrumentator = "^7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-asyncio = "^0.24"
+mypy = "^1.13"
+ruff = "^0.8"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
