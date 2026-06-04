@@ -19,6 +19,9 @@ class CalendarResolver:
     def allowlisted_uris(self) -> set[str]:
         return {uri for uri, name in self._cache.items() if name.casefold() in self._allow}
 
+    def display_name(self, calendar_uri: str) -> str:
+        return self._cache.get(calendar_uri, "")
+
     async def refresh(self, client: httpx.AsyncClient) -> None:
         """PROPFIND calendar-home to build {uri: display_name}. Called at startup."""
         url = f"{self._base_url}/remote.php/dav/calendars/{self._user}/"
