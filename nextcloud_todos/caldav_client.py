@@ -68,7 +68,14 @@ async def append_note(
     note: str,
     client: httpx.AsyncClient,
 ) -> None:
-    """Read-modify-write the VTODO object, preserving ETag semantics."""
+    """Read-modify-write the VTODO object, preserving ETag semantics.
+
+    The front proxy (openresty) rejects VALID If-Match preconditions with a
+    bare 412 that never reaches Sabre (verified live 2026-07-12, correct etag
+    from both GET and PROPFIND). On 412, re-read and retry once without
+    If-Match — for a description append the clobber window is milliseconds
+    and losing the note entirely is the worse failure.
+    """
     obj_url = f"{base_url}/remote.php/dav/calendars/{user}/{calendar_uri}/{todo_uri}"
     get = await client.get(obj_url, auth=(user, password))
     get.raise_for_status()
@@ -79,6 +86,16 @@ async def append_note(
         auth=(user, password),
         headers={"Content-Type": "text/calendar", "If-Match": get.headers.get("ETag", "*")},
     )
+    if put.status_code == 412:
+        get = await client.get(obj_url, auth=(user, password))
+        get.raise_for_status()
+        updated = append_description_note(get.text, note)
+        put = await client.put(
+            obj_url,
+            content=updated,
+            auth=(user, password),
+            headers={"Content-Type": "text/calendar"},
+        )
     put.raise_for_status()
 
 
