@@ -35,3 +35,21 @@ def test_parse_propfind_extracts_uri_and_name():
   </d:response>
 </d:multistatus>"""
     assert CalendarResolver._parse_propfind(xml) == {"personal": "Personal"}
+
+
+async def test_ideation_lane_resolution():
+    r = CalendarResolver(allowlist_names=["Personal"], ideation_names=["Noticing File"])
+    r._cache = {"personal": "Personal", "NF01": "Noticing File", "A63E": "To Buy"}
+    assert r.is_ideation("NF01") is True
+    assert r.is_ideation("personal") is False
+    assert r.is_ideation("A63E") is False
+    # ideation lists count as allowlisted so ingress and the sweep accept them
+    assert r.is_allowlisted("NF01") is True
+    assert r.allowlisted_uris() == {"personal", "NF01"}
+
+
+async def test_ideation_names_default_empty_keeps_old_behavior():
+    r = CalendarResolver(allowlist_names=["Personal"])
+    r._cache = {"personal": "Personal", "NF01": "Noticing File"}
+    assert r.is_ideation("NF01") is False
+    assert r.allowlisted_uris() == {"personal"}

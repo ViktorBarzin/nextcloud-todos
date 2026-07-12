@@ -67,3 +67,49 @@ async def test_updated_event_skipped(client):
     r = await c.post("/nextcloud/hook", json=body, headers={"Authorization": "Bearer tok"})
     assert r.status_code == 200 and r.json()["skipped"] == "not-created"
     assert (await session.execute(Todo.__table__.select())).fetchall() == []
+
+
+@pytest_asyncio.fixture
+async def ideation_client(session, monkeypatch):
+    monkeypatch.setenv("WEBHOOK_BEARER_TOKEN", "tok")
+    get_settings.cache_clear()
+    resolver = CalendarResolver(
+        allowlist_names=["Personal"], ideation_names=["Noticing File"]
+    )
+    resolver._cache = {"personal": "Personal", "NF01": "Noticing File"}
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_session] = lambda: session
+    app.dependency_overrides[get_resolver] = lambda: resolver
+
+    async def fail_triage(*a, **k):
+        raise AssertionError("ideation lane must not classify")
+
+    app.state.triage_fn = fail_triage
+    ideated: list[int] = []
+    app.state.ideate_fn = ideated.append
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
+        yield c, session, ideated
+    get_settings.cache_clear()
+
+
+async def test_ideation_list_vtodo_dispatches_ideation(ideation_client):
+    c, session, ideated = ideation_client
+    body = json.loads((FX / "webhook_created.json").read_text())
+    body["event"]["calendarData"]["uri"] = "NF01"
+    r = await c.post("/nextcloud/hook", json=body, headers={"Authorization": "Bearer tok"})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    todos = (await session.execute(Todo.__table__.select())).fetchall()
+    assert len(todos) == 1
+    assert todos[0].status == "ideating"
+    assert todos[0].todo_uri == "todo-1.ics"
+    assert ideated == [todos[0].id]
+
+
+async def test_agent_lane_persists_todo_uri_from_payload(client):
+    c, session = client
+    body = json.loads((FX / "webhook_created.json").read_text())
+    r = await c.post("/nextcloud/hook", json=body, headers={"Authorization": "Bearer tok"})
+    assert r.status_code == 200
+    todos = (await session.execute(Todo.__table__.select())).fetchall()
+    assert todos[0].todo_uri == "todo-1.ics"

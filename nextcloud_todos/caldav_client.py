@@ -42,6 +42,11 @@ class CalDavSyncer(Protocol):
 class ResolverLike(Protocol):
     def allowlisted_uris(self) -> set[str]: ...
     def display_name(self, calendar_uri: str) -> str: ...
+    def is_ideation(self, calendar_uri: str) -> bool: ...
+
+
+# Schedules an ideation run for a todo id; fire-and-forget (must not block the sweep).
+IdeateFn = Callable[[int], None]
 
 
 def append_description_note(ics: str, note: str) -> str:
@@ -84,6 +89,8 @@ async def _sync_calendar(
     display_name: str,
     *,
     triage_fn: TriageFn,
+    ideation: bool = False,
+    ideate_fn: IdeateFn | None = None,
 ) -> None:
     state = (
         await session.execute(select(SyncState).where(SyncState.calendar_uri == calendar_uri))
@@ -99,14 +106,24 @@ async def _sync_calendar(
     new_token, changes = await syncer.changed_todos(calendar_uri, state.sync_token)
     state.sync_token = new_token
     state.display_name = display_name
-    for _todo_uri, ics in changes:
+    for todo_uri, ics in changes:
         parsed = parse_vtodo(ics)
         if parsed is None:
             continue
         if first_sync:
             await _baseline_todo(session, parsed, calendar_uri)
         else:
-            await process_todo(session, parsed, calendar_uri, "", triage_fn=triage_fn)
+            todo = await process_todo(
+                session,
+                parsed,
+                calendar_uri,
+                "",
+                triage_fn=triage_fn,
+                ideation=ideation,
+                todo_uri=todo_uri,
+            )
+            if todo is not None and todo.status == "ideating" and ideate_fn is not None:
+                ideate_fn(todo.id)
     await session.commit()
 
 
@@ -128,6 +145,7 @@ async def sweep(
     syncer: CalDavSyncer,
     *,
     triage_fn: TriageFn,
+    ideate_fn: IdeateFn | None = None,
 ) -> None:
     """Reconcile each allowlisted calendar via an incremental sync-token pull.
 
@@ -138,10 +156,17 @@ async def sweep(
     """
     for calendar_uri in sorted(resolver.allowlisted_uris()):
         display_name = resolver.display_name(calendar_uri)
+        ideation = resolver.is_ideation(calendar_uri)
         try:
             async with maker() as session:
                 await _sync_calendar(
-                    session, syncer, calendar_uri, display_name, triage_fn=triage_fn
+                    session,
+                    syncer,
+                    calendar_uri,
+                    display_name,
+                    triage_fn=triage_fn,
+                    ideation=ideation,
+                    ideate_fn=ideate_fn,
                 )
         except InvalidSyncToken:
             log.warning("invalid sync token for %s; doing a full resync", calendar_uri)
@@ -155,7 +180,13 @@ async def sweep(
                     state.sync_token = None
                     await session.commit()
                 await _sync_calendar(
-                    session, syncer, calendar_uri, display_name, triage_fn=triage_fn
+                    session,
+                    syncer,
+                    calendar_uri,
+                    display_name,
+                    triage_fn=triage_fn,
+                    ideation=ideation,
+                    ideate_fn=ideate_fn,
                 )
 
 

@@ -18,6 +18,10 @@ class Todo(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     uid: Mapped[str] = mapped_column(String(512), unique=True, index=True)
     calendar_uri: Mapped[str] = mapped_column(String(255))
+    # DAV object filename (e.g. "ABC.ics"), needed to PUT notes back onto the
+    # todo. Nullable: rows recorded before this column existed lack it — the
+    # fallback is "<uid>.ics".
+    todo_uri: Mapped[str | None] = mapped_column(String(512), nullable=True)
     etag: Mapped[str] = mapped_column(String(255), default="")
     summary: Mapped[str] = mapped_column(String(1024), default="")
     description: Mapped[str] = mapped_column(Text, default="")

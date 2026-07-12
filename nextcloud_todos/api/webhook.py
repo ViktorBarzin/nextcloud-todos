@@ -70,6 +70,16 @@ async def hook(
         return {"skipped": "no-vtodo-in-ics"}
 
     triage_fn = request.app.state.triage_fn
-    await process_todo(session, parsed, calendar_uri, obj.get("etag", ""), triage_fn=triage_fn)
+    todo = await process_todo(
+        session,
+        parsed,
+        calendar_uri,
+        obj.get("etag", ""),
+        triage_fn=triage_fn,
+        ideation=resolver.is_ideation(calendar_uri),
+        todo_uri=obj.get("uri") or None,
+    )
+    if todo is not None and todo.status == "ideating":
+        request.app.state.ideate_fn(todo.id)
     logger.info("hook: processed uid=%s cal=%s", parsed.uid, calendar_uri)
     return {"ok": True}

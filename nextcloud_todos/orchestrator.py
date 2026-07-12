@@ -12,9 +12,20 @@ TriageFn = Callable[[str, str], Awaitable[TriageVerdict]]
 # VTODO STATUS values that mean the task is NOT open — never act on these.
 CLOSED_STATUSES = {"COMPLETED", "CANCELLED"}
 
+# Marker the ideation runner writes into a todo's DESCRIPTION. A new todo that
+# already carries it (e.g. a copy of an old noticing) is never re-ideated.
+IDEAS_MARKER = "💡 Ideas"
+
 
 async def process_todo(
-    session: AsyncSession, parsed: ParsedTodo, calendar_uri: str, etag: str, *, triage_fn: TriageFn
+    session: AsyncSession,
+    parsed: ParsedTodo,
+    calendar_uri: str,
+    etag: str,
+    *,
+    triage_fn: TriageFn,
+    ideation: bool = False,
+    todo_uri: str | None = None,
 ) -> Todo | None:
     # Act on a todo ONCE, at first sight only. Any later delivery for the same
     # UID (an edit, a status change, the agent's own note-append) is ignored —
@@ -32,6 +43,7 @@ async def process_todo(
     todo = Todo(
         uid=parsed.uid,
         calendar_uri=calendar_uri,
+        todo_uri=todo_uri,
         etag=etag,
         summary=parsed.summary,
         description=parsed.description,
@@ -39,6 +51,14 @@ async def process_todo(
     )
     session.add(todo)
     await session.flush()  # assign todo.id
+
+    if ideation:
+        # Ideation lane: no classification, no Event yet. The caller dispatches
+        # the ideation run for "ideating" todos; ones already carrying an ideas
+        # block are recorded as done so they are never re-ideated.
+        todo.status = "ideated" if IDEAS_MARKER in parsed.description else "ideating"
+        await session.commit()
+        return todo
 
     verdict = await triage_fn(parsed.summary, parsed.description)
     session.add(TriageLog(todo_id=todo.id, verdict=verdict.__dict__, model="qwen3-8b"))

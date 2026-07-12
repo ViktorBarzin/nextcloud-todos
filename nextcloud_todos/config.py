@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     caldav_app_password: str = ""
     webhook_bearer_token: str = ""
     list_allowlist: Annotated[list[str], NoDecode] = ["Personal"]
+    # Lists whose todos are "noticings": never classified, routed to the
+    # ideation runner instead (ideas get appended back onto the todo).
+    ideation_allowlist: Annotated[list[str], NoDecode] = []
 
     # local classifier
     llama_swap_url: str = "http://llama-swap.llama-cpp.svc.cluster.local:8080"
@@ -29,6 +32,7 @@ class Settings(BaseSettings):
     research_soft_cap_usd: float = 20.0
     plan_budget_usd: float = 5.0
     exec_budget_usd: float = 50.0
+    ideation_budget_usd: float = 3.0
 
     # callbacks
     callback_base_url: str = "https://nextcloud-todos.viktorbarzin.me"
@@ -37,7 +41,7 @@ class Settings(BaseSettings):
     # db
     db_connection_string: str = "sqlite+aiosqlite:///:memory:"
 
-    @field_validator("list_allowlist", mode="before")
+    @field_validator("list_allowlist", "ideation_allowlist", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
         # Accept a comma-separated env string (LIST_ALLOWLIST=Personal,Work) as

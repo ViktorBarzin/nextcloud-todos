@@ -21,3 +21,15 @@ def test_list_allowlist_parses_csv_env(monkeypatch):
 def test_list_allowlist_parses_multiple(monkeypatch):
     monkeypatch.setenv("LIST_ALLOWLIST", "Personal, Work Todo ,Goals 2026")
     assert Settings().list_allowlist == ["Personal", "Work Todo", "Goals 2026"]
+
+
+def test_ideation_allowlist_default_empty(monkeypatch):
+    monkeypatch.delenv("IDEATION_ALLOWLIST", raising=False)
+    s = Settings()
+    assert s.ideation_allowlist == []
+    assert s.ideation_budget_usd == 3.0
+
+
+def test_ideation_allowlist_parses_csv_env(monkeypatch):
+    monkeypatch.setenv("IDEATION_ALLOWLIST", "Noticing File, Date Ideas")
+    assert Settings().ideation_allowlist == ["Noticing File", "Date Ideas"]

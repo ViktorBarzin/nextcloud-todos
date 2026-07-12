@@ -15,6 +15,7 @@ from nextcloud_todos.api import callbacks, events, webhook
 from nextcloud_todos.calendars import CalendarResolver
 from nextcloud_todos.claude_agent import AgentResult, submit_and_wait
 from nextcloud_todos.config import get_settings
+from nextcloud_todos.ideation import run_ideation
 from nextcloud_todos.models import Approval, Event
 from nextcloud_todos.runner import AgentFn, run_execute
 from nextcloud_todos.triage import TriageVerdict, triage
@@ -51,11 +52,14 @@ async def _sweep_loop(
     resolver: CalendarResolver,
     syncer: caldav_client.CalDavSyncer,
     triage_fn: TriageFn,
+    ideate_fn: caldav_client.IdeateFn,
 ) -> None:
     while True:
         await asyncio.sleep(SWEEP_INTERVAL_SECONDS)
         with contextlib.suppress(Exception):
-            await caldav_client.sweep(maker, resolver, syncer, triage_fn=triage_fn)
+            await caldav_client.sweep(
+                maker, resolver, syncer, triage_fn=triage_fn, ideate_fn=ideate_fn
+            )
 
 
 def _bearer_error(authorization: str | None) -> str | None:
@@ -92,6 +96,7 @@ def create_app() -> FastAPI:
         user=s.nextcloud_user,
         password=s.caldav_app_password,
         allowlist_names=s.list_allowlist,
+        ideation_names=s.ideation_allowlist,
     )
 
     async def _session() -> AsyncIterator[AsyncSession]:
@@ -127,6 +132,31 @@ def create_app() -> FastAPI:
 
     app.state.on_approved = on_approved
 
+    async def note_fn(*, calendar_uri: str, todo_uri: str, note: str) -> None:
+        await caldav_client.append_note(
+            base_url=s.nextcloud_base_url,
+            user=s.nextcloud_user,
+            password=s.caldav_app_password,
+            calendar_uri=calendar_uri,
+            todo_uri=todo_uri,
+            note=note,
+            client=client,
+        )
+
+    async def _ideate(todo_id: int) -> None:
+        async with maker() as sess:
+            await run_ideation(sess, todo_id=todo_id, agent_fn=exec_agent_fn, note_fn=note_fn)
+
+    # Fire-and-forget dispatch; keep strong refs so tasks aren't GC'd mid-run.
+    ideation_tasks: set[asyncio.Task[None]] = set()
+
+    def ideate_fn(todo_id: int) -> None:
+        task = asyncio.create_task(_ideate(todo_id))
+        ideation_tasks.add(task)
+        task.add_done_callback(ideation_tasks.discard)
+
+    app.state.ideate_fn = ideate_fn
+
     syncer = caldav_client.LiveCalDavSyncer(
         base_url=s.nextcloud_base_url, user=s.nextcloud_user, password=s.caldav_app_password
     )
@@ -135,7 +165,9 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with contextlib.suppress(Exception):
             await resolver.refresh(client)
-        sweep_task = asyncio.create_task(_sweep_loop(maker, resolver, syncer, triage_fn))
+        sweep_task = asyncio.create_task(
+            _sweep_loop(maker, resolver, syncer, triage_fn, ideate_fn)
+        )
         try:
             yield
         finally:

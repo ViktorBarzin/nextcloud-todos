@@ -96,3 +96,47 @@ async def test_sweep_processes_new_todo_on_later_sync(maker):
         assert todos[0].status == "awaiting_approval"  # processed (a code todo)
         assert len((await s.execute(select(Event))).scalars().all()) == 1
     get_settings.cache_clear()
+
+
+async def test_sweep_dispatches_ideation_for_new_todo_on_ideation_list(maker):
+    get_settings.cache_clear()
+    resolver = CalendarResolver(allowlist_names=[], ideation_names=["Noticing File"])
+    resolver._cache = {"NF01": "Noticing File"}
+    async with maker() as s:  # prior baseline exists -> deltas are genuine creations
+        s.add(SyncState(calendar_uri="NF01", display_name="Noticing File", sync_token="t1"))
+        await s.commit()
+    syncer = FakeSyncer({"NF01": ("t2", [("swept-1.ics", VTODO)])})
+    ideated = []
+
+    async def fake_triage(*a, **k):
+        raise AssertionError("ideation lane must not classify")
+
+    await sweep(maker, resolver, syncer, triage_fn=fake_triage, ideate_fn=ideated.append)
+
+    async with maker() as s:
+        todos = (await s.execute(select(Todo))).scalars().all()
+        assert len(todos) == 1
+        assert todos[0].status == "ideating"
+        assert todos[0].todo_uri == "swept-1.ics"
+        assert ideated == [todos[0].id]
+        assert (await s.execute(select(Event))).scalars().all() == []
+    get_settings.cache_clear()
+
+
+async def test_sweep_first_run_baselines_ideation_list_too(maker):
+    get_settings.cache_clear()
+    resolver = CalendarResolver(allowlist_names=[], ideation_names=["Noticing File"])
+    resolver._cache = {"NF01": "Noticing File"}
+    syncer = FakeSyncer({"NF01": ("tok1", [("swept-1.ics", VTODO)])})
+    ideated = []
+
+    async def fake_triage(*a, **k):
+        raise AssertionError("baseline must not classify or ideate")
+
+    await sweep(maker, resolver, syncer, triage_fn=fake_triage, ideate_fn=ideated.append)
+
+    async with maker() as s:
+        todos = (await s.execute(select(Todo))).scalars().all()
+        assert len(todos) == 1 and todos[0].status == "baseline"
+    assert ideated == []
+    get_settings.cache_clear()

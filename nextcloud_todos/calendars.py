@@ -4,20 +4,33 @@ from defusedxml import ElementTree as ET  # add `defusedxml` to deps
 
 class CalendarResolver:
     def __init__(
-        self, *, base_url: str = "", user: str = "", password: str = "", allowlist_names: list[str]
+        self,
+        *,
+        base_url: str = "",
+        user: str = "",
+        password: str = "",
+        allowlist_names: list[str],
+        ideation_names: list[str] | None = None,
     ):
         self._base_url = base_url
         self._user = user
         self._password = password
         self._allow = {n.casefold() for n in allowlist_names}
+        self._ideation = {n.casefold() for n in (ideation_names or [])}
         self._cache: dict[str, str] = {}  # uri -> display_name
 
     def is_allowlisted(self, calendar_uri: str) -> bool:
+        """True for BOTH lanes — ingress and the sweep accept agent and ideation lists."""
         name = self._cache.get(calendar_uri)
-        return name is not None and name.casefold() in self._allow
+        return name is not None and name.casefold() in (self._allow | self._ideation)
+
+    def is_ideation(self, calendar_uri: str) -> bool:
+        name = self._cache.get(calendar_uri)
+        return name is not None and name.casefold() in self._ideation
 
     def allowlisted_uris(self) -> set[str]:
-        return {uri for uri, name in self._cache.items() if name.casefold() in self._allow}
+        both = self._allow | self._ideation
+        return {uri for uri, name in self._cache.items() if name.casefold() in both}
 
     def display_name(self, calendar_uri: str) -> str:
         return self._cache.get(calendar_uri, "")
