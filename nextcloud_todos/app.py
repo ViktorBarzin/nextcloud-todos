@@ -113,8 +113,9 @@ def create_app() -> FastAPI:
             summary,
             description,
             client=client,
-            llama_url=s.llama_swap_url,
-            model=s.llama_swap_model,
+            url=s.claude_agent_url,
+            model=s.triage_model,
+            token=s.claude_agent_token,
         )
 
     app.state.triage_fn = triage_fn

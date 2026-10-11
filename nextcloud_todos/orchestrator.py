@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos.config import get_settings
 from nextcloud_todos.models import Event, Todo, TriageLog
 from nextcloud_todos.parsing import ParsedTodo
 from nextcloud_todos.triage import TriageVerdict
@@ -61,7 +62,7 @@ async def process_todo(
         return todo
 
     verdict = await triage_fn(parsed.summary, parsed.description)
-    session.add(TriageLog(todo_id=todo.id, verdict=verdict.__dict__, model="qwen3-8b"))
+    session.add(TriageLog(todo_id=todo.id, verdict=verdict.__dict__, model=get_settings().triage_model))
 
     if not verdict.is_actionable or verdict.kind == "noise":
         todo.status = "dropped"

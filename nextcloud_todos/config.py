@@ -18,9 +18,8 @@ class Settings(BaseSettings):
     # ideation runner instead (ideas get appended back onto the todo).
     ideation_allowlist: Annotated[list[str], NoDecode] = []
 
-    # local classifier
-    llama_swap_url: str = "http://llama-swap.llama-cpp.svc.cluster.local:8080"
-    llama_swap_model: str = "qwen3-8b"
+    # tier-1 classifier, on claude-agent-service's no-tools path
+    triage_model: str = "haiku"
 
     # claude-agent-service
     claude_agent_url: str = "http://claude-agent-service.claude-agent.svc.cluster.local:8080"

@@ -36,18 +36,39 @@ class TriageVerdict:
         return self.kind in MUTATING_KINDS
 
 
+def _json_object(content: str) -> dict[str, object]:
+    """The JSON object in a reply, with a markdown code fence stripped if present."""
+    text = content.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else ""
+        text = text.rsplit("```", 1)[0]
+    data = json.loads(text)
+    if not isinstance(data, dict):
+        raise ValueError("triage reply is not a JSON object")
+    return data
+
+
 async def triage(
-    summary: str, description: str, *, client: httpx.AsyncClient, llama_url: str, model: str
+    summary: str,
+    description: str,
+    *,
+    client: httpx.AsyncClient,
+    url: str,
+    model: str,
+    token: str,
 ) -> TriageVerdict:
+    """Classify one todo with claude-agent-service.
+
+    The text comes from whoever can add to the list, so the call asks for the
+    service's no-tools sandbox: the model gets no tools and no infra checkout.
+    """
     user = f"SUMMARY: {summary}\nDESCRIPTION: {description}".strip()
     resp = await client.post(
-        f"{llama_url}/v1/chat/completions",
+        f"{url}/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
         json={
             "model": model,
-            "temperature": 0.0,
-            "max_tokens": 512,
-            "response_format": {"type": "json_object"},
-            "chat_template_kwargs": {"enable_thinking": False},
+            "no_tools": True,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user},
@@ -56,9 +77,8 @@ async def triage(
         timeout=300.0,
     )
     resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
-    data = json.loads(content)
-    kind = data.get("kind", "noise")
+    data = _json_object(resp.json()["choices"][0]["message"]["content"])
+    kind = str(data.get("kind", "noise"))
     if kind not in KINDS:
         kind = "noise"
     return TriageVerdict(

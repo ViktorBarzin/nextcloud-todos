@@ -8,7 +8,7 @@ def test_defaults(monkeypatch):
     s = Settings()
     assert s.nextcloud_user == "admin"
     assert s.list_allowlist == ["Personal"]
-    assert s.llama_swap_model == "qwen3-8b"
+    assert s.triage_model == "haiku"
     assert s.research_soft_cap_usd == 20.0
     assert s.exec_budget_usd == 50.0
 
