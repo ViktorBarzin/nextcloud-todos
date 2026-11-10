@@ -54,3 +54,12 @@ follows the same standard through the shared `viktorbarzin-telemetry` 0.1.0 libr
 
 - Whether a per-request `enduser.id` on log lines is worth adding. Today no line carries one,
   since no request names a Person.
+
+## Update 2026-11-10: telemetry 0.2.0 and the stable server id
+
+nextcloud-todos moves to `viktorbarzin-telemetry` 0.2.0, which never invents a random
+anonymousId. There is no browser, so no `X-Visitor-Id` and no request middleware. Every event
+keeps the configured `TELEMETRY_PERSON_ID` as its userId, and its fixed anonymousId changes from
+`nextcloud-todos-owner` to the library's stable server id `server:nextcloud-todos`, passed
+explicitly so it travels with the Person (0.2.0 would otherwise omit it when a userId is set).
+Without `TELEMETRY_PERSON_ID` that id is the only one.

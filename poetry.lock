@@ -2289,14 +2289,14 @@ test = ["aiohttp (>=3.10.5)", "flake8 (>=6.1,<7.0)", "mypy (>=0.800)", "psutil",
 
 [[package]]
 name = "viktorbarzin-telemetry"
-version = "0.1.0"
+version = "0.2.0"
 description = "Product events, errors and JSON logs to the viktorbarzin.me telemetry standard"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "viktorbarzin_telemetry-0.1.0-py3-none-any.whl", hash = "sha256:6f193d0aa84e072877e979e8506b32d3c9c363b530715e3439aa329a9ce0de70"},
-    {file = "viktorbarzin_telemetry-0.1.0.tar.gz", hash = "sha256:85e386bbc832cde734da6bee6a99e12db588ed150571eddd8f16507b70a375b8"},
+    {file = "viktorbarzin_telemetry-0.2.0-py3-none-any.whl", hash = "sha256:50e2e74637f394c46034f20c4c57c04909bc718a91c2668dafba9ca0cf0aacad"},
+    {file = "viktorbarzin_telemetry-0.2.0.tar.gz", hash = "sha256:728afc9036ff3532d7a6e314f25fb8f870fdc955aa2e1849aa19fe92b33bfa0d"},
 ]
 
 [package.dependencies]
@@ -2535,4 +2535,4 @@ tzdata = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "52f5f70f1ead455d68c4f888791ffd79a4fac47fcd0a47db0233dd738851e8ad"
+content-hash = "c2e8985ee80ca3810d0b806dee40dd4e13c94c94cf986cfc18d1352059120fbe"

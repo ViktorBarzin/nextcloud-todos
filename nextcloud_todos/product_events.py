@@ -11,7 +11,7 @@ environment:
 - `TELEMETRY_ENVIRONMENT`: only `production` sends anything.
 - `TELEMETRY_PERSON_ID`: the Authentik hashed user id of the person whose
   Nextcloud lists are watched. Nobody signs in to this service, so every event
-  is theirs. Unset means events carry no Person, only `OWNER_ANONYMOUS_ID`.
+  is theirs. Unset means events carry no Person, only `SERVER_ANONYMOUS_ID`.
 - `SENTRY_DSN`: GlitchTip's DSN for nextcloud-todos. Unset means no error reports.
 
 Properties are kinds, outcomes, statuses, costs and durations. No property
@@ -51,8 +51,10 @@ EVENTS: tuple[str, ...] = (
     EXECUTION_FINISHED,
 )
 
-#: The anonymousId of every event: there is one owner and no visitor.
-OWNER_ANONYMOUS_ID = "nextcloud-todos-owner"
+#: The anonymousId of every event: the telemetry library's stable server id
+#: (`server:<app>`). There is one owner and no browser visitor, so it is passed
+#: explicitly and every event carries it next to the Person.
+SERVER_ANONYMOUS_ID = f"server:{APP}"
 
 _person: str | None = None
 
@@ -109,7 +111,7 @@ def flush() -> None:
 
 def _send(event: str, properties: telemetry.Properties) -> None:
     try:
-        telemetry.track(event, properties, user_id=_person, anonymous_id=OWNER_ANONYMOUS_ID)
+        telemetry.track(event, properties, user_id=_person, anonymous_id=SERVER_ANONYMOUS_ID)
     except Exception:
         logger.warning("product events: %s was not sent", event, exc_info=True)
 

@@ -86,14 +86,15 @@ def test_production_without_a_host_sends_nothing_and_still_starts():
     assert product_events.start(env) is False
 
 
-def test_every_event_names_the_list_owner(sent):
+def test_every_event_names_the_list_owner_and_the_stable_server_id(sent):
     product_events.card_delivered("plan", wait_s=3)
-    [event] = sent.tracks
-    assert event.user_id == PERSON
-    assert event.anonymous_id == product_events.OWNER_ANONYMOUS_ID
+    product_events.card_delivered("answer", wait_s=4)
+    assert [(e.user_id, e.anonymous_id) for e in sent.tracks] == [
+        (PERSON, "server:nextcloud-todos")
+    ] * 2
 
 
-def test_without_a_person_id_events_carry_only_the_owner_anonymous_id():
+def test_without_a_person_id_events_carry_only_the_stable_server_id():
     fake = FakeEvents()
     env = {k: v for k, v in PRODUCTION.items() if k != "TELEMETRY_PERSON_ID"}
     assert product_events.start(env, client=fake) is True
@@ -101,7 +102,7 @@ def test_without_a_person_id_events_carry_only_the_owner_anonymous_id():
     product_events.stop()
     [event] = fake.tracks
     assert event.user_id is None
-    assert event.anonymous_id == product_events.OWNER_ANONYMOUS_ID
+    assert event.anonymous_id == "server:nextcloud-todos"
 
 
 # ------------------------------------------------------------------ events
