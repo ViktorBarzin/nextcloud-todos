@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos import product_events
 from nextcloud_todos.config import get_settings
 from nextcloud_todos.models import Event, Run, Todo
 from nextcloud_todos.runner import AgentFn, _finish
@@ -87,3 +88,8 @@ async def run_ideation(
     payload["cost_usd"] = res.cost_usd
     session.add(Event(todo_id=todo_id, kind="answer", payload=payload))
     await session.commit()
+    product_events.ideation_finished(
+        status=res.status,
+        cost_usd=res.cost_usd,
+        duration_s=product_events.seconds_between(run.started_at, run.finished_at),
+    )

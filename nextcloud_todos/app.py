@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from nextcloud_todos import caldav_client
+from nextcloud_todos import caldav_client, product_events
 from nextcloud_todos.api import callbacks, events, webhook
 from nextcloud_todos.calendars import CalendarResolver
 from nextcloud_todos.claude_agent import AgentResult, submit_and_wait
@@ -177,6 +177,8 @@ def create_app() -> FastAPI:
                 await sweep_task
             await client.aclose()
             await engine.dispose()
+            # Send what is queued before the process exits.
+            product_events.flush()
 
     app.router.lifespan_context = lifespan
 

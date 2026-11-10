@@ -15,6 +15,10 @@ RUN useradd -u 10001 -m app
 WORKDIR /app
 COPY --from=build /app /app
 ENV PATH="/app/.venv/bin:$PATH"
+# The release that error reports and log lines carry (docs/adr/0001): the
+# commit's short sha, passed by the CI build.
+ARG APP_VERSION=0.0.0
+ENV APP_VERSION=${APP_VERSION}
 USER 10001
 ENTRYPOINT ["python", "-m", "nextcloud_todos"]
 CMD ["serve"]

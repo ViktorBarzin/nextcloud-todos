@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos import product_events
 from nextcloud_todos.config import get_settings
 from nextcloud_todos.models import Event, Todo, TriageLog
 from nextcloud_todos.parsing import ParsedTodo
@@ -27,6 +28,7 @@ async def process_todo(
     triage_fn: TriageFn,
     ideation: bool = False,
     todo_uri: str | None = None,
+    source: str = "webhook",
 ) -> Todo | None:
     # Act on a todo ONCE, at first sight only. Any later delivery for the same
     # UID (an edit, a status change, the agent's own note-append) is ignored —
@@ -52,6 +54,7 @@ async def process_todo(
     )
     session.add(todo)
     await session.flush()  # assign todo.id
+    product_events.todo_received(lane="ideation" if ideation else "triage", source=source)
 
     if ideation:
         # Ideation lane: no classification, no Event yet. The caller dispatches
@@ -67,6 +70,9 @@ async def process_todo(
     if not verdict.is_actionable or verdict.kind == "noise":
         todo.status = "dropped"
         await session.commit()
+        product_events.todo_triaged(
+            todo_kind=verdict.kind, priority=verdict.priority, outcome="dropped"
+        )
         return todo
 
     kind = "plan" if verdict.needs_approval else "answer"
@@ -79,4 +85,5 @@ async def process_todo(
     )
     todo.status = "awaiting_approval" if kind == "plan" else "answering"
     await session.commit()
+    product_events.todo_triaged(todo_kind=verdict.kind, priority=verdict.priority, outcome=kind)
     return todo

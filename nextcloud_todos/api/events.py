@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos import product_events
 from nextcloud_todos.config import get_settings
 from nextcloud_todos.hmac_links import sign
 from nextcloud_todos.models import Event, Todo
@@ -41,6 +42,9 @@ async def consume(event_id: int, session: AsyncSession = Depends(get_session)) -
     if e and e.consumed_at is None:
         e.consumed_at = datetime.now(timezone.utc)
         await session.commit()
+        product_events.card_delivered(
+            e.kind, wait_s=product_events.seconds_between(e.created_at, e.consumed_at)
+        )
     return {"ok": True}
 
 

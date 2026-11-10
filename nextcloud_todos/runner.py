@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos import product_events
 from nextcloud_todos.claude_agent import AgentResult
 from nextcloud_todos.config import get_settings
 from nextcloud_todos.models import Event, Run, Todo
@@ -104,3 +105,9 @@ async def run_execute(
         )
     )
     await session.commit()
+    product_events.execution_finished(
+        status=res.status,
+        steered=bool(steer),
+        cost_usd=res.cost_usd,
+        duration_s=product_events.seconds_between(run.started_at, run.finished_at),
+    )

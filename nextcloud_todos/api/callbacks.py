@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nextcloud_todos import product_events
 from nextcloud_todos.config import get_settings
 from nextcloud_todos.hmac_links import verify
 from nextcloud_todos.models import Approval, Event
@@ -23,11 +24,17 @@ async def _record(
     secret = get_settings().hmac_secret
     if not verify(secret, event_id, decision, sig):
         raise HTTPException(status_code=403, detail="bad signature")
-    if await session.get(Event, event_id) is None:
+    event = await session.get(Event, event_id)
+    if event is None:
         raise HTTPException(status_code=404, detail="no such event")
     ap = Approval(event_id=event_id, decision=decision, sig=sig, steer_prompt=steer)
     session.add(ap)
     await session.commit()
+    product_events.approval_recorded(
+        decision,
+        steered=bool(steer and steer.strip()),
+        wait_s=product_events.seconds_between(event.created_at, ap.decided_at),
+    )
     return ap
 
 

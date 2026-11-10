@@ -8,6 +8,11 @@ a full-powers `claude-agent-service` run executes it.
 See `docs/superpowers/specs/2026-06-04-nextcloud-todos-design.md` (in the
 monorepo) for the design.
 
+## Telemetry
+
+Product events, OTel JSON logs and GlitchTip errors per `docs/adr/0001-telemetry-standard.md`.
+Nothing is sent unless `TELEMETRY_WRITE_KEY` is set and `TELEMETRY_ENVIRONMENT=production`.
+
 ## Dev
 
     poetry install

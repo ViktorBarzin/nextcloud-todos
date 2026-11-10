@@ -138,6 +138,7 @@ async def _sync_calendar(
                 triage_fn=triage_fn,
                 ideation=ideation,
                 todo_uri=todo_uri,
+                source="sweep",
             )
             if todo is not None and todo.status == "ideating" and ideate_fn is not None:
                 ideate_fn(todo.id)

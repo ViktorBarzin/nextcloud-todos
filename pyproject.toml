@@ -21,6 +21,7 @@ pydantic-settings = "^2.6"
 prometheus-fastapi-instrumentator = "^8.1"
 defusedxml = "^0.7"
 python-multipart = "^0.0.32"
+viktorbarzin-telemetry = {version = "0.1.0", extras = ["sentry"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
